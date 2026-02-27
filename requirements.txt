@@ -1,0 +1,6 @@
+# List of required packages
+# Operating system
+
+# Development tools
+
+# Database management systems
