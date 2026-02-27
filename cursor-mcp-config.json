@@ -1,0 +1,31 @@
+{
+    "mcpServers": {
+        "custom-jira": {
+            "command": "python",
+            "args": [
+                "./custom_mcp_servers/jira_server.py"
+            ],
+            "env": {
+                "JIRA_URL": "https://your-domain.atlassian.net",
+                "JIRA_USERNAME": "your-email@example.com",
+                "JIRA_API_TOKEN": "your-api-token"
+            }
+        },
+        "custom-github": {
+            "command": "python",
+            "args": [
+                "./custom_mcp_servers/github_server.py"
+            ],
+            "env": {
+                "GITHUB_TOKEN": "your-github-token"
+            }
+        },
+        "pr-manager": {
+            "command": "python",
+            "args": [
+                "./github_tools/mcp_pr_manager.py"
+            ],
+            "env": {}
+        }
+    }
+}

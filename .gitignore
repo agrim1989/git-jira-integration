@@ -1,0 +1,24 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+
+# OS and Editor ignores
+.DS_Store
+.vscode/
+.idea/
+*.log
+logs/
+
+# Testing files and directories
+tests/
+test_*.py
+*_test.py
+test.py
