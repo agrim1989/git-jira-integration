@@ -481,13 +481,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let jql = '';
         if (currentFilter === 'assigned') {
-            jql = 'assignee = currentUser() ORDER BY updated DESC';
+            jql = 'assignee = currentUser() AND statusCategory != "Done" ORDER BY updated DESC';
         } else if (currentFilter === 'todo') {
             jql = 'statusCategory = "To Do" ORDER BY created DESC';
         } else if (currentFilter === 'progress') {
             jql = 'statusCategory = "In Progress" ORDER BY updated DESC';
+        } else if (currentFilter === 'done') {
+            jql = 'statusCategory = "Done" ORDER BY updated DESC';
         } else {
-            jql = 'project is not empty ORDER BY created DESC';
+            jql = 'project is not empty AND statusCategory != "Done" ORDER BY created DESC';
         }
 
         try {
@@ -722,6 +724,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- ADF to HTML renderer for comment bodies ---
+    function renderAdfNode(node) {
+        if (!node || typeof node !== 'object') return '';
+        const type = node.type;
+
+        if (type === 'text') {
+            let t = (node.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const marks = node.marks || [];
+            marks.forEach(m => {
+                if (m.type === 'strong') t = `<strong>${t}</strong>`;
+                else if (m.type === 'em') t = `<em>${t}</em>`;
+                else if (m.type === 'code') t = `<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:0.85em;">${t}</code>`;
+                else if (m.type === 'link') {
+                    const href = (m.attrs && m.attrs.href) || '#';
+                    t = `<a href="${href}" target="_blank" style="color:var(--accent-primary);text-decoration:underline;">${t}</a>`;
+                }
+                else if (m.type === 'strike') t = `<del>${t}</del>`;
+            });
+            return t;
+        }
+
+        const children = (node.content || []).map(c => renderAdfNode(c)).join('');
+
+        switch (type) {
+            case 'doc': return children;
+            case 'paragraph': return `<p style="margin:4px 0;">${children}</p>`;
+            case 'heading': {
+                const lvl = (node.attrs && node.attrs.level) || 3;
+                return `<h${lvl} style="margin:6px 0 4px 0;">${children}</h${lvl}>`;
+            }
+            case 'bulletList': return `<ul style="margin:4px 0 4px 16px;padding-left:8px;">${children}</ul>`;
+            case 'orderedList': return `<ol style="margin:4px 0 4px 16px;padding-left:8px;">${children}</ol>`;
+            case 'listItem': return `<li style="margin:2px 0;">${children}</li>`;
+            case 'codeBlock': {
+                const lang = (node.attrs && node.attrs.language) || '';
+                return `<pre style="background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:6px;overflow-x:auto;font-size:0.85em;margin:4px 0;"><code>${children}</code></pre>`;
+            }
+            case 'blockquote': return `<blockquote style="border-left:3px solid var(--accent-primary);padding-left:12px;margin:4px 0;color:var(--text-secondary);">${children}</blockquote>`;
+            case 'rule': return `<hr style="border:none;border-top:1px solid var(--border-color);margin:8px 0;">`;
+            case 'hardBreak': return '<br>';
+            default: return children;
+        }
+    }
+
+    function renderUserDetails(user, label) {
+        if (!user) return '';
+        const name = user.displayName || 'Unknown';
+        const email = user.emailAddress || '';
+        const accountId = user.accountId || '';
+        const active = user.active !== undefined ? user.active : null;
+        const timeZone = user.timeZone || '';
+        const accountType = user.accountType || '';
+        const avatar = user.avatarUrls ? (user.avatarUrls['32x32'] || user.avatarUrls['24x24'] || '') : '';
+
+        return `
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.02);">
+                ${avatar
+                ? `<img src="${avatar}" alt="${name}" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--accent-primary);margin-top:2px;">`
+                : `<div style="width:36px;height:36px;border-radius:50%;background:var(--accent-primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:0.9rem;margin-top:2px;">${name.charAt(0).toUpperCase()}</div>`
+            }
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">${label}</div>
+                    <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary);">${name}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:0.73rem;color:var(--text-secondary);">
+                        ${email ? `<span title="Email">📧 ${email}</span>` : ''}
+                        ${accountId ? `<span title="Account ID" style="font-family:monospace;">🆔 ${accountId}</span>` : ''}
+                        ${active !== null ? `<span title="Active Status">${active ? '🟢 Active' : '🔴 Inactive'}</span>` : ''}
+                        ${timeZone ? `<span title="Timezone">🌐 ${timeZone}</span>` : ''}
+                        ${accountType ? `<span title="Account Type">👤 ${accountType}</span>` : ''}
+                    </div>
+                </div>
+            </div>`;
+    }
+
     async function fetchComments(key) {
         const commentsContainer = document.getElementById('ticket-comments');
         commentsContainer.innerHTML = '<em>Loading comments...</em>';
@@ -735,28 +811,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let html = '';
-            // Show last 5 comments
-            const recent = data.comments.slice(-5);
-            recent.forEach(c => {
-                const author = c.author ? c.author.displayName : 'Unknown';
-                const created = new Date(c.created).toLocaleString();
-                let text = c.body;
-                // very basic adf rendering to text for comments
-                if (typeof text === 'object' && text.content) {
-                    text = text.content.map(p => {
-                        if (p.content) return p.content.map(tc => tc.text).join(' ');
-                        return '';
-                    }).join('<br>');
-                } else if (typeof text !== 'string') {
-                    text = JSON.stringify(text);
+            let html = `<div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">
+                Total: <strong>${data.comments.length}</strong> comment(s)
+            </div>`;
+
+            data.comments.forEach((c, idx) => {
+                // --- Extract all fields ---
+                const commentSelf = c.self || '';
+                const commentId = c.id || '';
+                const createdDate = c.created ? new Date(c.created).toLocaleString() : 'N/A';
+                const createdRaw = c.created || '';
+                const updatedDate = c.updated ? new Date(c.updated).toLocaleString() : '';
+                const updatedRaw = c.updated || '';
+                const wasEdited = c.updated && c.created && c.updated !== c.created;
+                const jsdPublic = c.jsdPublic !== undefined ? c.jsdPublic : null;
+                const visibility = c.visibility ? `${c.visibility.type}: ${c.visibility.value}` : '';
+
+                // --- Render body (ADF → HTML) ---
+                let bodyHtml = '';
+                if (c.body && typeof c.body === 'object' && c.body.type === 'doc') {
+                    bodyHtml = renderAdfNode(c.body);
+                } else if (typeof c.body === 'string') {
+                    bodyHtml = c.body.replace(/\n/g, '<br>');
+                } else if (c.body) {
+                    bodyHtml = `<pre style="font-size:0.8rem;white-space:pre-wrap;">${JSON.stringify(c.body, null, 2)}</pre>`;
+                } else {
+                    bodyHtml = '<em>No body</em>';
                 }
 
-                html += `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;"><strong>${author}</strong> at ${created}</div>
-                    <div style="font-size: 0.9rem;">${text}</div>
+                // --- Build comment card ---
+                html += `
+                <div style="margin-bottom:20px;padding:16px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border-color);transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+
+                    <!-- Header: Comment # + ID + Self Link -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-weight:700;font-size:0.85rem;color:var(--accent-primary);">#${idx + 1}</span>
+                            <span style="font-size:0.7rem;color:var(--text-secondary);background:rgba(255,255,255,0.06);padding:3px 10px;border-radius:12px;font-family:monospace;">ID: ${commentId}</span>
+                        </div>
+                        ${commentSelf ? `<a href="${commentSelf}" target="_blank" style="font-size:0.68rem;color:var(--text-secondary);text-decoration:none;opacity:0.7;" title="API Self Link">🔗 self</a>` : ''}
+                    </div>
+
+                    <!-- Author Section -->
+                    ${renderUserDetails(c.author, 'Author')}
+
+                    <!-- Timestamps & Metadata -->
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:0.73rem;color:var(--text-secondary);">
+                        <span title="Created at ${createdRaw}">📝 Created: ${createdDate}</span>
+                        <span title="Updated at ${updatedRaw}">🔄 Updated: ${updatedDate}</span>
+                        ${wasEdited ? '<span style="color:var(--accent-primary);">✏️ Edited</span>' : '<span style="opacity:0.5;">—  Not edited</span>'}
+                        ${jsdPublic !== null ? `<span title="JSD Public">${jsdPublic ? '🌍 Public' : '🔒 Private'}</span>` : ''}
+                        ${visibility ? `<span title="Visibility">🛡️ ${visibility}</span>` : ''}
+                    </div>
+
+                    <!-- Update Author (if different from author) -->
+                    ${c.updateAuthor ? renderUserDetails(c.updateAuthor, 'Update Author') : ''}
+
+                    <!-- Body Content -->
+                    <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(0,0,0,0.15);font-size:0.9rem;line-height:1.6;color:var(--text-primary);border-left:3px solid var(--accent-primary);">
+                        ${bodyHtml}
+                    </div>
                 </div>`;
             });
+
             commentsContainer.innerHTML = html;
         } catch (e) {
             commentsContainer.innerHTML = '<em style="color:var(--error);">Failed to load comments</em>';

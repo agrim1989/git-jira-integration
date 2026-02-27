@@ -94,6 +94,7 @@
                         <button class="filter-btn" data-filter="assigned">Assigned to Me</button>
                         <button class="filter-btn" data-filter="todo">To Do</button>
                         <button class="filter-btn" data-filter="progress">In Progress</button>
+                        <button class="filter-btn" data-filter="done">Done</button>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <span
@@ -158,9 +159,15 @@
                             <!-- Subtasks injected here -->
                         </div>
                     </div>
-                    <h3 style="margin-top:24px;">Latest Comments</h3>
+                    <h3 style="margin-top:24px; display: flex; align-items: center; gap: 8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Comments
+                    </h3>
                     <div id="ticket-comments" class="description-content"
-                        style="background: rgba(0,0,0,0.1); padding: 12px; border-radius: 8px;">
+                        style="background: rgba(0,0,0,0.1); padding: 16px; border-radius: 10px; max-height: 600px; overflow-y: auto;">
                         <!-- Comments injected here -->
                     </div>
                     <div style="margin-top: 16px; display: flex; gap: 8px;">
