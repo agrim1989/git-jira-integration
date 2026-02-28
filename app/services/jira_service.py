@@ -677,3 +677,19 @@ def update_ticket(
             return {"id": ticket_id, "message": "updated"}
         raise RuntimeError(f"Jira update ticket failed: {r.text}")
 
+
+def transition_issue(issue_key: str, transition_id: str) -> None:
+    """Transition a Jira issue to a new status (e.g. '41' for Done)."""
+    if not settings.jira_configured:
+        raise ValueError("Jira is not configured")
+    base = settings.jira_url.rstrip("/")
+    url = f"{base}/rest/api/3/issue/{issue_key}/transitions"
+    tid = str(transition_id).strip()
+    with httpx.Client(timeout=30.0) as client:
+        r = client.post(
+            url,
+            auth=(settings.jira_username, settings.jira_api_token),
+            json={"transition": {"id": tid}},
+        )
+        r.raise_for_status()
+
