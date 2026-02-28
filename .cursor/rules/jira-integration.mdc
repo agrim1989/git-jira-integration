@@ -1,0 +1,14 @@
+---
+description: Jira integration patterns — use Jira MCP for search, create, update, comment, and transition
+alwaysApply: false
+globs: **/jira*.py,**/tickets*.py,**/mcp*server*.py,.cursor/skills/jira-integration/**
+---
+
+# Jira Integration Rules
+
+When working with Jira-related code or the Jira integration skill:
+
+1. **Prefer MCP**: Agent flows should use the Jira MCP tools (`get_issue`, `search_issues`, `create_issue`, `update_issue`, `add_comment`, `transition_issue`) rather than ad-hoc REST or duplicate logic.
+2. **Single source of truth**: Jira operations live in `app/services/jira_service.py`; the MCP server in `custom_mcp_servers/jira_server.py` delegates to that service. New Jira operations should be added to the service first, then exposed via MCP if needed.
+3. **Errors**: Use clear, safe error messages; never expose credentials or tokens. Log at appropriate level (e.g. WARNING for expected failures, ERROR for unexpected).
+4. **Transitions**: Transition IDs are workflow-specific; document or allow configuration where possible (e.g. env or config for "Done" transition id).

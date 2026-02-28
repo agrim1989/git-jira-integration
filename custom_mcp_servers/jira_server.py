@@ -13,7 +13,8 @@ from app.services.jira_service import (
     create_ticket,
     update_ticket,
     add_comment_to_ticket,
-    ticket_to_context_string
+    transition_issue as jira_transition_issue,
+    ticket_to_context_string,
 )
 
 mcp = FastMCP("Custom Jira Server")
@@ -64,6 +65,17 @@ def update_issue(issue_key: str, summary: Optional[str] = None, description: Opt
         return f"Updated issue: {issue_key}"
     except Exception as e:
         return f"Error updating issue {issue_key}: {e}"
+
+
+@mcp.tool()
+def transition_issue(issue_key: str, transition_id: str) -> str:
+    """Transition a Jira issue to a new status (e.g. 41 for Done)."""
+    try:
+        jira_transition_issue(issue_key, transition_id)
+        return f"Issue {issue_key} transitioned to status (transition_id={transition_id})"
+    except Exception as e:
+        return f"Error transitioning issue {issue_key}: {e}"
+
 
 if __name__ == "__main__":
     import os
