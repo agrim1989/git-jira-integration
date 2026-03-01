@@ -2,6 +2,10 @@
 
 This guide outlines procedures for deploying a Large Language Model (LLM) in a local or on-premises environment, with emphasis on performance, security, and maintainability.
 
+## Overview
+
+Deploying an LLM locally gives you full control over data, latency, and cost. This document covers hardware and software requirements, step-by-step setup, day-to-day operations, and best practices so your team can run models reliably and securely without depending on external APIs.
+
 ---
 
 ## 1. Hardware and Software Requirements
@@ -9,7 +13,7 @@ This guide outlines procedures for deploying a Large Language Model (LLM) in a l
 ### Hardware
 
 - **CPU**: Multi-core processor (e.g., 8+ cores) for inference and data loading.
-- **GPU** (recommended): NVIDIA GPU with sufficient VRAM (e.g., 16GB+ for 7B models, 24GB+ for 13B).
+- **GPU** (recommended): NVIDIA GPU with sufficient VRAM (e.g., 16GB+ for 7B models, 24GB+ for 13B). Use **quantization** (e.g. 4-bit or 8-bit) to reduce VRAM and run larger models on limited hardware.
 - **RAM**: Minimum 32GB system RAM; 64GB+ for larger models or batch inference.
 - **Storage**: SSD with adequate space for model weights and checkpoints (tens of GB per model).
 
@@ -65,3 +69,16 @@ This guide outlines procedures for deploying a Large Language Model (LLM) in a l
 - [ ] Performance, accuracy, and responsiveness are verified under expected loads.
 - [ ] Procedures, tooling, and best practices are documented and shared with the team.
 - [ ] Stakeholder and end-user feedback is reviewed and reflected in the deployment and docs.
+
+---
+
+## 6. Quick Reference
+
+| Task | Example / pointer |
+|------|-------------------|
+| Python env | `python -m venv .venv && source .venv/bin/activate` (Linux/macOS) |
+| Install stack | `pip install torch transformers` or `pip install vllm` |
+| GPU selection | `export CUDA_VISIBLE_DEVICES=0` |
+| Sanity check | Run a short prompt through your chosen backend (vLLM, `pipeline`, or llama.cpp server) |
+
+For detailed usage, refer to official documentation: [Hugging Face Transformers](https://huggingface.co/docs/transformers), [vLLM](https://docs.vllm.ai/), [llama.cpp](https://github.com/ggerganov/llama.cpp).
