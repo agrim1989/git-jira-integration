@@ -17,8 +17,6 @@ dist/
 *.log
 logs/
 
-# Testing files and directories
-tests/
-test_*.py
+# Testing files and directories (tests/ is tracked for project test suites)
 *_test.py
 test.py
