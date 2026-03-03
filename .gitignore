@@ -17,8 +17,10 @@ dist/
 *.log
 logs/
 
-# Testing files and directories
-tests/
-test_*.py
+# Testing files and directories (tests/ is tracked for project test suites)
 *_test.py
 test.py
+
+# MCP config with secrets (use .env or Cursor MCP settings)
+main_mcp.json
+mcp-config-merged.json
